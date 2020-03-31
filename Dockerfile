@@ -41,7 +41,13 @@ RUN printf "=== install packages ===\n" && \
 		python3-setproctitle \
 		python3-six \
 		python3-twisted \
-		python3-zope.interface
+		python3-zope.interface \
+	&& \
+	printf "=== cleanup ===\n" && \
+	rm -rf \
+		/tmp/* \
+		/var/lib/apt/lists/* \
+		/var/tmp/*
 
 COPY --from=builder /app /app
 COPY root/ /
