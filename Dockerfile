@@ -1,6 +1,6 @@
-ARG BASE_VERSION=18.04
+ARG BASE_VERSION=10-slim
 
-FROM ubuntu:${BASE_VERSION} as builder
+FROM debian:${BASE_VERSION} as builder
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN printf "=== install packages ===\n" && \
@@ -24,8 +24,7 @@ RUN printf "=== building ===\n" && \
 	. bin/activate  && \
 	pip3 install deluge
 
-
-FROM ubuntu:${BASE_VERSION}
+FROM debian:${BASE_VERSION}
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN printf "=== install packages ===\n" && \
@@ -52,7 +51,6 @@ RUN printf "=== install packages ===\n" && \
 COPY --from=builder /app /app
 COPY root/ /
 
-ENV HOME=/home/app
 ENV PYTHON_EGG_CACHE="/config/plugins/.python-eggs"
 ENV VIRTUAL_ENV=/app
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
