@@ -21,20 +21,31 @@ CMD=(
 	"/app/bin/deluged"
 	"--config" "/config"
 	"--do-not-daemonize"
-	"--loglevel" "${DELUGE_LOGLEVEL:-info}"
 )
 
 if [[ ! -e /config/.initialized ]]; then
 	timeout -s INT 1 "${CMD[@]}" || true
 
 	pushd /config
+	if ! [[ -e auth && -e core.conf ]]; then
+		printf "deluged failed to initialize\n" 1>&2
+		exit 1
+	fi
+	
+	printf "setting default password\n" 1>&2
 	grep -q '^admin' auth ||
 		printf "admin:%s:10\n" "${DEFAULT_PASS:-admin}" >> auth
-	sed -i -e '/allow_remote/s/false/true/' core.conf
+
+	printf "enabling remote access\n" 1>&2
+	/update_config.py
+
 	touch .initialized
 	popd
 
 	chown -R app:app /config
 fi
 
-exec chroot --userspec app:app / "${CMD[@]}"
+CMD+=( "--loglevel" "${DELUGE_LOGLEVEL:-info}" )
+
+export HOME=${HOME:-/home/app}
+exec setpriv --reuid app --regid app --init-groups "${CMD[@]}"
