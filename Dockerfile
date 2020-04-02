@@ -30,6 +30,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN printf "=== install packages ===\n" && \
 	apt-get update && apt-get install --no-install-recommends -y \
 		ca-certificates \
+		netcat-traditional \
 		python3-chardet \
 		python3-libtorrent \
 		python3-mako \
@@ -54,7 +55,10 @@ COPY root/ /
 ENV PYTHON_EGG_CACHE="/config/plugins/.python-eggs"
 ENV VIRTUAL_ENV=/app
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV LISTEN_PORTS=58479
 
 ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 58846 58479 58479/udp
 VOLUME /config /download
+
+HEALTHCHECK ["/bin/netcat", "-z", "127.0.0.1", "58479"]
