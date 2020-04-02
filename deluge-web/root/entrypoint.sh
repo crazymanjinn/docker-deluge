@@ -17,35 +17,30 @@ printf -- "User gid\t%s\n" "$(id -g app)"
 printf -- "---------------------------\n"
 chown -R app:app /config
 
-CMD=(
-	"/app/bin/deluged"
-	"--config" "/config"
-	"--do-not-daemonize"
-)
 
-if [[ ! -e /config/.initialized ]]; then
-	timeout -s INT 1 "${CMD[@]}" || true
+initial_sleep=0.25
+declare -i tries=1
 
-	pushd /config
-	if ! [[ -e auth && -e core.conf ]]; then
-		printf "deluged failed to initialize\n" 1>&2
+until [[ -e /config/.initialized ]]; do
+	if ((tries > ${RETRIES:-3})); then
+		printf "deluged did not initialize after %d attempts\n" "$tries" 1>&2
 		exit 1
 	fi
-	
-	printf "setting default password\n" 1>&2
-	grep -q '^admin' auth ||
-		printf "admin:%s:10\n" "${DEFAULT_PASS:-admin}" >> auth
 
-	printf "enabling remote access\n" 1>&2
-	/update_config.py
+	sleep $initial_sleep
 
-	touch .initialized
-	popd
+	((tries ++))
+	initial_sleep=$(bc <<< "$initial_sleep * 2")
+done
 
-	chown -R app:app /config
-fi
+printf "url = 127.0.0.1:%s\n" "${PORT:-8112}" >> /health.cfg
 
-CMD+=( "--loglevel" "${DELUGE_LOGLEVEL:-info}" )
-
+CMD=(
+	"/app/bin/deluge-web"
+	"--config" "/config"
+	"--do-not-daemonize"
+	"--port" "${PORT:-8112}"
+	"--loglevel" "${LOGLEVEL:-info}"
+)
 export HOME=${HOME:-/home/app}
 exec setpriv --reuid app --regid app --init-groups "${CMD[@]}"
